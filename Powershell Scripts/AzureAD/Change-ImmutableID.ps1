@@ -1,6 +1,6 @@
 # Install-Module MSOnline
-Connect-MsolService
+Install-Module AzureAD
+Connect-AzureAD
 
-Get-MsolUser  | Select-Object UserprincipalName
-Set-MsolUser -UserPrincipalName [user@domain.com] -ImmutableId [valeur $immutableid récupéré avant]
+Set-AzureADUser -ObjectId xyz@domain.com -ImmutableId [ImmutableID récupéré avant]
 
