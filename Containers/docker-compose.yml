@@ -1,0 +1,68 @@
+#version: "3.7"
+networks:
+  proxy:
+    name: proxy
+    external: true
+
+services:
+  traefik:
+    container_name: traefik
+    image: traefik:3.0
+    restart: unless-stopped
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.api.rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      traefik.http.routers.api.service: "api@internal"
+      traefik.http.routers.api.entrypoints: "traefik"
+    environment:
+      - GANDIV5_API_KEY=SUPER_SECRET_KEY
+      # TRACING
+      - TRAEFIK_TRACING=true                                                # Enable tracing
+      #- TRAEFIK_TRACING_JAEGER_SAMPLINGPARAM=0                              # Set the Jaeger sampling parameter
+      #- TRAEFIK_TRACING_JAEGER_TRACECONTEXTHEADERNAME=X-Request-ID          # Set the header to use for the X-Request-ID
+    command:
+      # See https://doc.traefik.io/traefik/contributing/data-collection/
+      - --global.sendAnonymousUsage=false
+      # See https://doc.traefik.io/traefik/observability/logs/
+      - --log.filePath=/data/traefik.log
+      - --log.level=DEBUG
+      # See https://doc.traefik.io/traefik/observability/access-logs/
+      - --accessLog
+      - --accesslog.filepath=/data/access.log
+      # See https://doc.traefik.io/traefik/operations/api/
+      - --api=true
+      - --api.dashboard=true
+      # See https://doc.traefik.io/traefik/routing/entrypoints/#redirection
+      - --entryPoints.web.address=:81
+      - --entrypoints.websecure.address=:443
+      - --entryPoints.traefik.address=:8181
+      # See https://doc.traefik.io/traefik/https/acme/
+      - --certificatesresolvers.letsencrypt.acme.email=sylvain.millier@gmail.com
+      #- --certificatesresolvers.letsencrypt.acme.storage=/data/acme.json
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=gandiv5
+      # https://doc.traefik.io/traefik/providers/docker/
+      - --providers.docker=true
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=proxy
+      - --providers.docker.watch=true
+    networks:
+      - proxy
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - target: 81
+        published: 81
+        protocol: tcp
+        mode: host
+      - target: 8181
+        published: 8181
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
