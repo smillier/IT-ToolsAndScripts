@@ -1,8 +1,10 @@
-$PrinterNames = Import-CSV .\printers.csv
+$PrinterNames = Get-Printer
 
 foreach ($PrinterName in $PrinterNames ){
-  $P = Get-Printer $PrinterNames.PrinterName
-  Remove-PrinterPort -Name $P.PortName
-  Add-PrinterPort -Name $PrinterName.NewPortName -PrinterHostAddress $PrinterName.NewPortAddress
-  Set-Printer -name $P -PortName $PrinterName.NewPortName
+  $P = Get-PrinterPort -Name $PrinterName.PortName
+  $PrinterName.PortName
+  $NewName = $P.Name.ToString().replace(".10.",".20.")
+  Add-PrinterPort -Name $NewName -PrinterHostAddress $P.PrinterHostAddress
+  Set-Printer -name $PrinterName.Name -PortName $NewName
+  Remove-PrinterPort -Name $P.Name
 }
